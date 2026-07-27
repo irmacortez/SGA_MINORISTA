@@ -1,0 +1,22 @@
+# --- Sistema Operativo y Temporales ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Editores e IDEs ---
+.vscode/
+.idea/
+
+# --- Backend & Configuración Local (PHP) ---
+config/db.php
+config/conexion.php
+
+# --- Archivos de Compilación para Mobile / APK ---
+*.apk
+*.aab
+build/
+bin/
+gen/
+out/
+node_modules/
+.gradle/
