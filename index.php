@@ -1,28 +1,24 @@
 <?php
+// Habilitar la visualización de errores de PHP
 ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start();
+// Cargar controladores y modelos necesarios
+require_once "controllers/ProductoController.php";
+require_once "models/Producto.php";
+require_once "config/conexion.php";
 
-require_once __DIR__ . '/config/conexion.php';
+// Determinar la acción solicitada por la URL (por defecto 'inventario')
+$action = isset($_GET['action']) ? $_GET['action'] : 'inventario';
 
-$controllerName = isset($_GET['c']) ? ucfirst($_GET['c']) . 'Controller' : 'ProductoController';
-$action         = isset($_GET['a']) ? $_GET['a'] : 'index';
-
-$controllerPath = __DIR__ . '/controllers/' . $controllerName . '.php';
-
-if (file_exists($controllerPath)) {
-    require_once $controllerPath;
-    if (class_exists($controllerName)) {
-        $controller = new $controllerName();
-        if (method_exists($controller, $action)) {
-            $controller->$action();
-        } else {
-            die("Error 404: El método '{$action}' no existe.");
-        }
-    } else {
-        die("Error 404: La clase '{$controllerName}' no existe.");
-    }
+if ($action === 'inventario') {
+    $controller = new ProductoController();
+    $controller->guardarProductoController();
+    $productos = $controller->listarProductosController();
+    
+    // Cargar la vista de inventario
+    require_once "views/modules/inventario.php";
 } else {
-    die("Error 404: El controlador '{$controllerName}' no existe.");
+    echo "Página no encontrada";
 }
