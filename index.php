@@ -1,32 +1,44 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-require_once "controllers/ProductoController.php";
-require_once "models/Producto.php";
+// Configuración y Conexión
 require_once "config/conexion.php";
 
-// Escuchar acciones de guardar, editar o eliminar
-ProductoController::guardarProductoController();
-ProductoController::actualizarProductoController();
-ProductoController::eliminarProductoController();
+// Requerir todos los Modelos
+require_once "models/Producto.php";
+require_once "models/Categoria.php";
+require_once "models/Proveedor.php";
 
-$action = isset($_GET['action']) ? $_GET['action'] : 'inventario';
+// Requerir todos los Controladores
+require_once "controllers/ProductoController.php";
+require_once "controllers/CategoriaController.php";
+require_once "controllers/ProveedorController.php";
 
-if ($action === 'inventario') {
+// Capturamos la acción desde la URL (por defecto carga "login")
+$action = isset($_GET["action"]) ? $_GET["action"] : "login";
 
-   // Instanciamos el controlador
-    $inventario = new ProductoController();
+// Enrutador principal
+switch ($action) {
+    case "inventario":
+        include "views/modules/inventario.php";
+        break;
 
-    // Procesamos acciones POST/GET si las hay (guardar, editar, eliminar)
-    ProductoController::guardarProductoController();
-    ProductoController::actualizarProductoController();
-    ProductoController::eliminarProductoController();
+    case "categorias":
+        include "views/modules/categorias.php";
+        break;
 
-    // Cargamos la vista con sus datos
-    $inventario->mostrarInventario();
+    case "proveedores":
+        include "views/modules/proveedores.php";
+        break;
 
-} else {
-    echo "<h1>Página no encontrada</h1>";
+    case "ventas":
+        include "views/modules/ventas.php";
+        break;
+
+    case "informes":
+        include "views/modules/informes.php";
+        break;
+
+    case "login":
+    default:
+        include "views/modules/login.php";
+        break;
 }

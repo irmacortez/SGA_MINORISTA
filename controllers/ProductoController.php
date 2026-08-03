@@ -1,13 +1,13 @@
 <?php
 require_once "models/Producto.php";
 require_once "models/Categoria.php";
-require_once "models/Proveedor.php";  
+require_once "models/Proveedor.php";
 
 class ProductoController {
 
     public function mostrarInventario() {
-        // 1. Traemos los productos usando la función del JOIN
-        $productos = ProductoModel::listarProductosModel(); 
+        // 1. Traemos los productos usando la clase Producto
+        $productos = Producto::listarProductosModel(); 
         
         // 2. Traemos todas las categorías y proveedores para llenar los <select> del modal
         $categorias  = Categoria::listarCategoriasModel();
@@ -16,62 +16,66 @@ class ProductoController {
         include "views/modules/inventario.php";
     }
 
-    // Guardar nuevo
+    // Listar productos
+    public static function listarProductosController() {
+        return Producto::listarProductosModel();
+    }
+
+    // Guardar nuevo producto
     public static function guardarProductoController() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["nuevoNombre"])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["nuevoNombreProducto"])) {
             
             $datos = array(
-                "nombre_producto" => $_POST["nuevoNombre"],
-                "precio_venta"    => $_POST["nuevoPrecioVenta"],
-                "stock_actual"    => $_POST["nuevoStockActual"],
-                "stock_minimo"    => $_POST["nuevoStockMinimo"],
-                "id_categoria"    => $_POST["nuevoIdCategoria"],
-                "id_proveedor"    => $_POST["nuevoIdProveedor"]
+                "nombre_producto" => trim($_POST["nuevoNombreProducto"]),
+                "precio_venta"    => trim($_POST["nuevoPrecioVenta"]),
+                "stock_actual"    => trim($_POST["nuevoStockActual"]),
+                "stock_minimo"    => trim($_POST["nuevoStockMinimo"]),
+                "id_categoria"    => $_POST["nuevaCategoria"],
+                "id_proveedor"    => $_POST["nuevoProveedor"]
             );
 
-            $respuesta = ProductoModel::guardarProductoModel($datos);
+            $respuesta = Producto::guardarProductoModel($datos);
 
             if ($respuesta === "ok") {
-                header("Location: index.php?action=inventario&status=success");
+                echo '<script>window.location = "index.php?action=inventario&status=success";</script>';
                 exit();
             }
         }
     }
 
-    // Actualizar existente
+    // Actualizar producto existente
     public static function actualizarProductoController() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["editarId"])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["editarIdProducto"])) {
             
             $datos = array(
-                "id_producto"     => $_POST["editarId"],
-                "nombre_producto" => $_POST["editarNombre"],
-                "precio_venta"    => $_POST["editarPrecioVenta"],
-                "stock_actual"    => $_POST["editarStockActual"],
-                "stock_minimo"    => $_POST["editarStockMinimo"],
-                "id_categoria"    => $_POST["editarIdCategoria"],
-                "id_proveedor"    => $_POST["editarIdProveedor"]
+                "id_producto"     => $_POST["editarIdProducto"],
+                "nombre_producto" => trim($_POST["editarNombreProducto"]),
+                "precio_venta"    => trim($_POST["editarPrecioVenta"]),
+                "stock_actual"    => trim($_POST["editarStockActual"]),
+                "stock_minimo"    => trim($_POST["editarStockMinimo"]),
+                "id_categoria"    => $_POST["editarCategoria"],
+                "id_proveedor"    => $_POST["editarProveedor"]
             );
 
-            $respuesta = ProductoModel::actualizarProductoModel($datos);
+            $respuesta = Producto::actualizarProductoModel($datos);
 
             if ($respuesta === "ok") {
-                header("Location: index.php?action=inventario&status=updated");
+                echo '<script>window.location = "index.php?action=inventario&status=updated";</script>';
                 exit();
             }
         }
     }
 
-    // Eliminar
+    // Eliminar producto
     public static function eliminarProductoController() {
-        if (isset($_GET["idEliminar"])) {
-            $id = $_GET["idEliminar"];
-            $respuesta = ProductoModel::eliminarProductoModel($id);
+        if (isset($_GET["idEliminarProducto"])) {
+            $id = $_GET["idEliminarProducto"];
+            $respuesta = Producto::eliminarProductoModel($id);
 
             if ($respuesta === "ok") {
-                echo '<script>
-                    window.location = "index.php?action=inventario&status=deleted";
-                </script>';
+                echo '<script>window.location = "index.php?action=inventario&status=deleted";</script>';
                 exit();
             }
         }
     }
+}

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . "/../config/conexion.php";
 
-class ProductoModel {
+class Producto {
 
     // Mostrar todos los productos con sus NOMBRES de categoría y proveedor
     public static function listarProductosModel() {
