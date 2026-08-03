@@ -1,13 +1,23 @@
 <?php
-require_once "config/conexion.php";
+require_once __DIR__ . "/../config/conexion.php";
 
 class ProductoModel {
 
-    // Mostrar productos
+    // Mostrar todos los productos con sus NOMBRES de categoría y proveedor
     public static function listarProductosModel() {
-        $stmt = Conexion::conectar()->prepare("SELECT * FROM productos ORDER BY id_producto DESC");
+        $stmt = Conexion::conectar()->prepare("
+            SELECT 
+                p.*,
+                c.nombre_categoria,
+                pr.nombre_proveedor
+            FROM productos p
+            LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
+            LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
+            ORDER BY p.id_producto DESC
+        ");
+        
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Registrar producto
@@ -26,7 +36,36 @@ class ProductoModel {
         } else {
             return "error";
         }
+    }
 
-        $stmt = null;
+    // Modificar producto
+    public static function actualizarProductoModel($datos) {
+        $stmt = Conexion::conectar()->prepare("UPDATE productos SET nombre_producto = :nombre_producto, precio_venta = :precio_venta, stock_actual = :stock_actual, stock_minimo = :stock_minimo, id_categoria = :id_categoria, id_proveedor = :id_proveedor WHERE id_producto = :id_producto");
+
+        $stmt->bindParam(":id_producto",     $datos["id_producto"],     PDO::PARAM_INT);
+        $stmt->bindParam(":nombre_producto", $datos["nombre_producto"], PDO::PARAM_STR);
+        $stmt->bindParam(":precio_venta",    $datos["precio_venta"],    PDO::PARAM_STR);
+        $stmt->bindParam(":stock_actual",    $datos["stock_actual"],    PDO::PARAM_INT);
+        $stmt->bindParam(":stock_minimo",    $datos["stock_minimo"],    PDO::PARAM_INT);
+        $stmt->bindParam(":id_categoria",    $datos["id_categoria"],    PDO::PARAM_INT);
+        $stmt->bindParam(":id_proveedor",    $datos["id_proveedor"],    PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return "ok";
+        } else {
+            return "error";
+        }
+    }
+
+    // Eliminar producto
+    public static function eliminarProductoModel($id) {
+        $stmt = Conexion::conectar()->prepare("DELETE FROM productos WHERE id_producto = :id");
+        $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            return "ok";
+        } else {
+            return "error";
+        }
     }
 }
