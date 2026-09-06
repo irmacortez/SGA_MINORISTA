@@ -2,84 +2,56 @@
 
 class VentaController {
 
-
     /*=============================================
-    MOSTRAR / LISTAR VENTAS
+    OBTENER ÚLTIMO CÓDIGO DE FACTURA
     =============================================*/
-    public static function mostrarVentasController() {
-        return Venta::listarVentasModel();
-    }
+    public static function ctrObtenerUltimoCodigoFactura() {
+        $tabla = "ventas";
+        $respuesta = VentaModel::mdlObtenerUltimoCodigoFactura($tabla);
 
-    public static function listarVentasController() {
-        return Venta::listarVentasModel();
-    }
-
-
-    /*=============================================
-    REGISTRAR Y GUARDAR VENTA
-    =============================================*/
-    public static function guardarVentaController() {
-        if (isset($_POST["totalVenta"]) && isset($_POST["productosCarrito"])) {
-            
-            $listaProductos = json_decode($_POST["productosCarrito"], true);
-
-            if (empty($listaProductos)) {
-                echo '<script>
-                    Swal.fire({
-                        icon: "error",
-                        title: "El carrito está vacío",
-                        text: "Debe agregar al menos un producto para registrar la venta."
-                    });
-                </script>';
-                return;
-            }
-
-            // Generar código único de factura (ej: V-100234)
-            $codigoFactura = "V-" . rand(100000, 999999);
-            
-            $datosVenta = array(
-                "codigo_factura" => $codigoFactura,
-                "total" => $_POST["totalVenta"]
-            );
-
-            // LLAMADA AL MODELO:
-            $respuesta = Venta::registrarVentaModel($datosVenta, $listaProductos);
-
-            if ($respuesta == "ok") {
-                echo '<script>
-                    Swal.fire({
-                        icon: "success",
-                        title: "¡Venta Registrada!",
-                        text: "La venta se ha guardado y el stock fue actualizado correctamente.",
-                        showConfirmButton: true,
-                        confirmButtonText: "Ok"
-                    }).then((result) => {
-                        if (result.value) {
-                            window.location = "index.php?action=ventas";
-                        }
-                    });
-                </script>';
-            } else {
-                echo '<script>
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo registrar la venta. Intente nuevamente."
-                    });
-                </script>';
-            }
+        if (!$respuesta || empty($respuesta["codigo_factura"])) {
+            return "1";
+        } else {
+            return intval($respuesta["codigo_factura"]) + 1;
         }
     }
 
     /*=============================================
-    OBTENER DETALLE DE UNA VENTA POR ID
+    GUARDAR VENTA
     =============================================*/
-    public static function mostrarVentaPorIdController($idVenta) {
-        return Venta::obtenerVentaPorIdModel($idVenta);
-    }
+    public function guardarVentaController() {
+        if (isset($_POST["codigoFactura"]) && isset($_POST["totalVenta"])) {
 
-    public static function mostrarDetalleVentaController($idVenta) {
-        return Venta::obtenerDetalleVentaModel($idVenta);
-    }
+            // Validar que se hayan enviado productos en el JSON
+            $productos = isset($_POST["productosCarrito"]) ? $_POST["productosCarrito"] : "[]";
+            $listaProductos = json_decode($productos, true);
 
-} 
+            if (empty($listaProductos) || !is_array($listaProductos)) {
+                echo '<script>
+                    alert("⚠️ El carrito está vacío. Agregá al menos un producto antes de facturar.");
+                </script>';
+                return;
+            }
+
+            $datosVenta = array(
+                "codigo_factura" => $_POST["codigoFactura"],
+                "total"          => $_POST["totalVenta"],
+                "productos"      => $productos
+            );
+
+            // Registrar la venta en la base de datos
+            $respuesta = VentaModel::registrarVentaModel("ventas", $datosVenta, $listaProductos);
+
+            if ($respuesta == "ok") {
+                echo '<script>
+                    alert("✅ Venta registrada con éxito.");
+                    window.location = "index.php?action=ventas";
+                </script>';
+            } else {
+                echo '<script>
+                    alert("❌ Ocurrió un error al guardar la venta.");
+                </script>';
+            }
+        }
+    }
+}

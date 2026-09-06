@@ -1,70 +1,52 @@
 <?php
-require_once "controllers/VentaController.php";
-
-// Obtener la lista de ventas registradas en la base de datos
+// Obtener historial de ventas ordenadas por fecha
 $ventas = VentaController::listarVentasController();
 ?>
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><i class="fas fa-file-invoice-dollar text-primary"></i> Historial de Ventas</h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="index.php?action=inicio">Inicio</a></li>
-                    <li class="breadcrumb-item active">Ventas</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1><i class="fa fa-file-text-o"></i> Historial de Facturas y Ventas</h1>
+    </section>
 
-<section class="content">
-    <div class="container-fluid">
-        <div class="card card-outline card-primary">
-            <div class="card-header">
-                <a href="index.php?action=crear-venta" class="btn btn-success">
-                    <i class="fas fa-plus-circle"></i> Nueva Venta
+    <section class="content">
+        <div class="box box-primary">
+            <div class="box-header with-border">
+                <h3 class="box-title">Facturas Registradas (Ordenadas por Fecha)</h3>
+                <a href="index.php?action=crear-venta" class="btn btn-success pull-right">
+                    <i class="fa fa-plus"></i> Nueva Venta
                 </a>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped" id="tablaVentas">
-                        <thead class="bg-light">
+            <div class="box-body">
+                <table class="table table-bordered table-striped dt-responsive">
+                    <thead>
+                        <tr>
+                            <th style="width:10px">#</th>
+                            <th>Nº Factura</th>
+                            <th>Fecha y Hora</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($ventas as $index => $v): ?>
                             <tr>
-                                <th style="width: 50px;">#</th>
-                                <th>Código Factura</th>
-                                <th>Fecha / Hora</th>
-                                <th>Total</th>
-                                <th style="width: 100px;" class="text-center">Acciones</th>
+                                <td><?php echo ($index + 1); ?></td>
+                                <td><strong><?php echo $v["codigo_factura"]; ?></strong></td>
+                                <td><?php echo date("d/m/Y H:i", strtotime($v["fecha_hora"])); ?></td>
+                                <td>$<?php echo number_format($v["total"], 2); ?></td>
+                                <td>
+                                    <a href="index.php?action=ver-venta&id=<?php echo $v["id_venta"]; ?>" class="btn btn-info btn-xs">
+                                        <i class="fa fa-eye"></i> Ver Detalle
+                                    </a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($ventas)): ?>
-                                <?php foreach ($ventas as $index => $v): ?>
-                                    <tr>
-                                        <td><?php echo $index + 1; ?></td>
-                                        <td><strong><?php echo htmlspecialchars($v['codigo_factura']); ?></strong></td>
-                                        <td><?php echo date("d/m/Y H:i", strtotime($v['fecha_hora'])); ?></td>
-                                        <td>$<?php echo number_format($v['total'], 2); ?></td>
-                                        <td class="text-center">
-                                            <a href="index.php?action=ver-venta&idVenta=<?php echo $v['id_venta']; ?>" class="btn btn-info btn-sm" title="Ver Detalle">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">No se encontraron ventas registradas.</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php endforeach; ?>
+                        <?php if (empty($ventas)): ?>
+                            <tr><td colspan="5" class="text-center">No hay ventas registradas aún.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+</div>

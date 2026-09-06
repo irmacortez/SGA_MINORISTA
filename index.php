@@ -1,57 +1,36 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Configuración y Conexión
 require_once "config/conexion.php";
 
-// Requerir todos los Modelos
-require_once "models/Producto.php";
-require_once "models/Categoria.php";
-require_once "models/Proveedor.php";
+// Incluir Modelos
 require_once "models/Venta.php";
+if (file_exists("models/Producto.php")) {
+    require_once "models/Producto.php";
+} elseif (file_exists("models/productos.modelo.php")) {
+    require_once "models/productos.modelo.php";
+}
 
-// Requerir todos los Controladores
-require_once "controllers/ProductoController.php";
-require_once "controllers/CategoriaController.php";
-require_once "controllers/ProveedorController.php";
+// Incluir Controladores
 require_once "controllers/VentaController.php";
+if (file_exists("controllers/ProductoController.php")) {
+    require_once "controllers/ProductoController.php";
+} elseif (file_exists("controllers/productos.controlador.php")) {
+    require_once "controllers/productos.controlador.php";
+}
 
-// Capturamos la acción desde la URL (por defecto carga "login")
-$action = isset($_GET["action"]) ? $_GET["action"] : "login";
+// Enrutador
+$action = $_GET["action"] ?? "ver-ventas";
 
-// Enrutador principal
-switch ($action) {
-    case "inventario":
-        include "views/modules/inventario.php";
-        break;
-
-    case "categorias":
-        include "views/modules/categorias.php";
-        break;
-
-    case "proveedores":
-        include "views/modules/proveedores.php";
-        break;
-
-    case "ventas":
-        include "views/modules/ventas.php";
-        break;
-
-    case "crear-venta":
-        include "views/modules/crear-venta.php";
-        break;
-
-    case "ver-venta":
-        include "views/modules/ver-venta.php";
-        break; 
-
-    case "informes":
-        include "views/modules/informes.php";
-        break;
-
-    case "login":
-        include "views/modules/login.php";
-        break;
-
-    default:
-        include "views/modules/inicio.php";
-        break; 
+if ($action == "ver-ventas") {
+    include "views/modules/ver-ventas.php";
+} elseif ($action == "crear-venta") {
+    include "views/modules/crear-venta.php";
+} elseif ($action == "imprimir-factura") {
+    include "views/modules/imprimir-factura.php";
+} else {
+    include "views/modules/ver-ventas.php";
 }
