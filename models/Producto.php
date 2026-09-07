@@ -50,4 +50,31 @@ class Producto {
 
     }
 
+    /*=============================================
+    ACTUALIZAR / DESCONTAR STOCK DEL PRODUCTO
+    =============================================*/
+    public static function actualizarStockModel($idProducto, $cantidadVendida, $conexionPDO = null) {
+
+        try {
+            // Si viene dentro de una transacción (desde VentaModel), usa la misma conexión $conexionPDO
+            $pdo = $conexionPDO ? $conexionPDO : Conexion::conectar();
+
+            $stmt = $pdo->prepare("UPDATE productos SET stock_actual = stock_actual - :cantidad WHERE id_producto = :id");
+            $stmt->bindParam(":cantidad", $cantidadVendida, PDO::PARAM_INT);
+            $stmt->bindParam(":id", $idProducto, PDO::PARAM_INT);
+
+            if ($stmt->execute()) {
+                return "ok";
+            } else {
+                return "error";
+            }
+
+        } catch (Exception $e) {
+            return "error";
+        } finally {
+            $stmt = null;
+        }
+
+    }
+
 }

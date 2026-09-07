@@ -125,10 +125,22 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
 
                         </div>
                         <div class="box-footer">
-                            <button type="submit" class="btn btn-primary pull-right btn-lg">
-                                <i class="fa fa-check"></i> Confirmar y Facturar
-                            </button>
-                        </div>
+    <!-- Botón para vaciar el carrito -->
+    <button type="button" class="btn btn-danger pull-left" id="btnVaciarCarrito">
+        <i class="fa fa-trash"></i> Vaciar Carrito
+    </button>
+
+    <!-- Botón para Imprimir o guardar en PDF sin librerías externas -->
+    <button type="button" class="btn btn-default pull-left" onclick="window.print();" style="margin-left: 10px;">
+        <i class="fa fa-print"></i> Imprimir / Guardar PDF
+    </button>
+
+    <!-- Botón principal para procesar la venta -->
+    <button type="submit" class="btn btn-primary pull-right btn-lg" id="btnFacturar">
+        <i class="fa fa-check"></i> Confirmar y Facturar
+    </button>
+</div>
+                       
                     </div>
                 </div>
 
@@ -160,9 +172,11 @@ function insertarProductoAlCarrito() {
 
     var idProducto = select.value;
     var option = select.options[select.selectedIndex];
+    
+    // Extraer datos con respaldo flexible
     var nombre = option.getAttribute("data-nombre") || option.text.split('|')[0].trim();
     var precio = parseFloat(option.getAttribute("data-precio")) || 0;
-    var stock = parseInt(option.getAttribute("data-stock"), 10) || 0;
+    var stock  = parseInt(option.getAttribute("data-stock"), 10) || 0;
 
     var inputCant = document.getElementById("inputCantidadAgregar");
     var cantidad = inputCant ? parseInt(inputCant.value, 10) : 1;
@@ -173,6 +187,7 @@ function insertarProductoAlCarrito() {
         return;
     }
 
+    // Buscar si ya existe en el carrito
     var existe = carritoCompras.find(function(item) { return item.id_producto == idProducto; });
 
     if (existe) {
@@ -181,7 +196,7 @@ function insertarProductoAlCarrito() {
             return;
         }
         existe.cantidad += cantidad;
-        existe.subtotal = (existe.cantidad * existe.preciounitario).toFixed(2);
+        existe.subtotal = (existe.cantidad * existe.precio).toFixed(2);
     } else {
         if (cantidad > stock) {
             alert("La cantidad elegida supera el stock disponible (" + stock + " unidades).");
@@ -191,11 +206,13 @@ function insertarProductoAlCarrito() {
             id_producto: idProducto,
             nombre_producto: nombre,
             cantidad: cantidad,
+            precio: precio,
             preciounitario: precio,
             subtotal: (precio * cantidad).toFixed(2)
         });
     }
 
+    // Limpiar selección
     select.value = "";
     if (inputCant) inputCant.value = "1";
 
@@ -224,7 +241,7 @@ function dibujarTablaCarrito() {
         var tr = document.createElement("tr");
         tr.innerHTML = '<td>' + item.nombre_producto + '</td>' +
                        '<td class="text-center">' + item.cantidad + '</td>' +
-                       '<td class="text-right">$' + item.preciounitario.toFixed(2) + '</td>' +
+                       '<td class="text-right">$' + item.precio.toFixed(2) + '</td>' +
                        '<td class="text-right">$' + sub.toFixed(2) + '</td>' +
                        '<td class="text-center"><button type="button" class="btn btn-danger btn-xs" onclick="quitarItemCarrito(' + index + ')"><i class="fa fa-times"></i></button></td>';
         tbody.appendChild(tr);

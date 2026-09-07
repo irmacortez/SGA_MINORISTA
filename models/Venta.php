@@ -53,7 +53,7 @@ class VentaModel {
         try {
             $link->beginTransaction();
 
-            // 1. Insertar Cabecera
+            // 1. Insertar Cabecera de la Venta
             $stmt = $link->prepare("INSERT INTO ventas (codigo_factura, total, fecha_hora) VALUES (:codigo, :total, NOW())");
             $stmt->bindParam(":codigo", $datosVenta["codigo_factura"], PDO::PARAM_INT);
             $stmt->bindParam(":total", $datosVenta["total"], PDO::PARAM_STR);
@@ -66,11 +66,12 @@ class VentaModel {
 
                 $idProducto = $producto["id_producto"] ?? $producto["id"] ?? $producto["idProducto"];
                 $cantidad   = $producto["cantidad"] ?? $producto["cant"] ?? 1;
-                $precio     = $producto["precio"] ?? $producto["precio_unitario"] ?? 0;
+                $precio     = $producto["preciounitario"] ?? $producto["precio"] ?? $producto["precio_unitario"] ?? 0;
                 $subtotal   = $producto["subtotal"] ?? ($cantidad * $precio);
 
+                // Guardar ítem en detalle_ventas usando la columna preciounitario
                 $stmtDetalle = $link->prepare("
-                    INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, subtotal) 
+                    INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, preciounitario, subtotal) 
                     VALUES (:id_venta, :id_prod, :cant, :precio, :sub)
                 ");
                 $stmtDetalle->bindParam(":id_venta", $idVenta, PDO::PARAM_INT);
@@ -80,8 +81,8 @@ class VentaModel {
                 $stmtDetalle->bindParam(":sub", $subtotal, PDO::PARAM_STR);
                 $stmtDetalle->execute();
 
-                // Actualizar Stock
-                $stmtStock = $link->prepare("UPDATE productos SET stock = stock - :cant WHERE id_producto = :id_prod");
+                // Actualizar Stock en la tabla productos (stock_actual)
+                $stmtStock = $link->prepare("UPDATE productos SET stock_actual = stock_actual - :cant WHERE id_producto = :id_prod");
                 $stmtStock->bindParam(":cant", $cantidad, PDO::PARAM_INT);
                 $stmtStock->bindParam(":id_prod", $idProducto, PDO::PARAM_INT);
                 $stmtStock->execute();
@@ -91,7 +92,9 @@ class VentaModel {
             return "ok";
 
         } catch (Exception $e) {
-            $link->rollBack();
+            if ($link->inTransaction()) {
+                $link->rollBack();
+            }
             return "Error DB: " . $e->getMessage();
         }
     }

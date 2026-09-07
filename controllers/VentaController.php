@@ -1,55 +1,47 @@
 <?php
 
-class VentaController {
+require_once __DIR__ . "/../models/Venta.php";
 
-    /*=============================================
-    OBTENER ÚLTIMO CÓDIGO DE FACTURA
-    =============================================*/
-    public static function ctrObtenerUltimoCodigoFactura() {
-        $tabla = "ventas";
-        $respuesta = VentaModel::mdlObtenerUltimoCodigoFactura($tabla);
-
-        if (!$respuesta || empty($respuesta["codigo_factura"])) {
-            return "1";
-        } else {
-            return intval($respuesta["codigo_factura"]) + 1;
-        }
-    }
+class VentaControllers {
 
     /*=============================================
     GUARDAR VENTA
     =============================================*/
     public function guardarVentaController() {
-        if (isset($_POST["codigoFactura"]) && isset($_POST["totalVenta"])) {
 
-            // Validar que se hayan enviado productos en el JSON
-            $productos = isset($_POST["productosCarrito"]) ? $_POST["productosCarrito"] : "[]";
-            $listaProductos = json_decode($productos, true);
+        // Captura tanto si el input se llama 'total' o 'totalVenta'
+        if ((isset($_POST["total"]) && floatval($_POST["total"]) > 0) || (isset($_POST["totalVenta"]) && floatval($_POST["totalVenta"]) > 0)) {
 
-            if (empty($listaProductos) || !is_array($listaProductos)) {
-                echo '<script>
-                    alert("⚠️ El carrito está vacío. Agregá al menos un producto antes de facturar.");
-                </script>';
-                return;
-            }
+            $total = $_POST["total"] ?? $_POST["totalVenta"];
+            
+            // Decodificar el JSON de productos enviado desde el JS
+            $productosJson = $_POST["productosCarrito"] ?? "[]";
+            $listaProductos = json_decode($productosJson, true);
 
-            $datosVenta = array(
-                "codigo_factura" => $_POST["codigoFactura"],
-                "total"          => $_POST["totalVenta"],
-                "productos"      => $productos
-            );
+            if (!empty($listaProductos) && is_array($listaProductos)) {
 
-            // Registrar la venta en la base de datos
-            $respuesta = VentaModel::registrarVentaModel("ventas", $datosVenta, $listaProductos);
+                $datosVenta = [
+                    "codigo_factura" => $_POST["codigoFactura"] ?? 1,
+                    "total"          => $total
+                ];
 
-            if ($respuesta == "ok") {
-                echo '<script>
-                    alert("✅ Venta registrada con éxito.");
-                    window.location = "index.php?action=ventas";
-                </script>';
+                // Invocación directa a tu VentaModel y su método registrarVentaModel
+                $respuesta = VentaModel::registrarVentaModel($datosVenta, $listaProductos);
+
+                if ($respuesta === "ok") {
+                    echo '<script>
+                        alert("¡Venta registrada con éxito y stock actualizado!");
+                        window.location = "index.php?action=crear-venta";
+                    </script>';
+                    exit();
+                } else {
+                    echo '<script>
+                        alert("Error de Base de Datos: ' . addslashes($respuesta) . '");
+                    </script>';
+                }
             } else {
                 echo '<script>
-                    alert("❌ Ocurrió un error al guardar la venta.");
+                    alert("El carrito está vacío o el formato de productos es incorrecto.");
                 </script>';
             }
         }
