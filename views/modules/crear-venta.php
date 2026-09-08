@@ -1,10 +1,25 @@
 <?php
-/*=============================================
- OBTENER LISTA DE PRODUCTOS DE LA BASE DE DATOS
-=============================================*/
-$productos = array();
+/* =============================================
+   OBTENER LISTA DE PRODUCTOS Y CÓDIGO DE FACTURA
+   ============================================= */
+require_once "models/Producto.php";
+require_once "controllers/ProductoController.php";
+require_once "models/Venta.php";
+require_once "controllers/VentaController.php";
 
-// Invocar el controlador según la clase declarada
+// 1. Consultar la última venta registrada para el código correlativo
+$ultimaVenta = VentaModel::obtenerUltimaVentaModel();
+
+if (!$ultimaVenta) {
+    // Si la tabla 'ventas' está vacía, inicia en 10001
+    $codigoFactura = 10001; 
+} else {
+    // Toma el último código_factura y le suma 1 automáticamente
+    $codigoFactura = intval($ultimaVenta["codigo_factura"]) + 1;
+}
+
+// 2. Obtener lista de productos
+$productos = array();
 if (class_exists('ProductoController') && method_exists('ProductoController', 'listarProductosController')) {
     $productos = ProductoController::listarProductosController();
 } elseif (class_exists('ProductoControllers') && method_exists('ProductoControllers', 'listarProductosController')) {
@@ -40,7 +55,7 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
                                                 // Mapeo flexible de nombres de columnas
                                                 $id     = $p['id_producto']   ?? $p['id']           ?? '';
                                                 $nombre = $p['nombre_producto'] ?? $p['nombre']       ?? $p['descripcion'] ?? 'Producto';
-                                                $precio = floatval($p['precio_venta'] ?? $p['precio_unitario'] ?? $p['precio'] ?? 0);
+                                                $precio = floatval($p['precio_venta'] ?? $p['preciounitario'] ?? $p['precio'] ?? 0);
                                                 $stock  = intval($p['stock_actual']  ?? $p['stock']  ?? 0);
                                             ?>
                                             <option value="<?php echo $id; ?>" 
@@ -80,9 +95,17 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
                         <div class="box-body">
                             
                             <!-- Número de Factura / Ticket -->
-                            <div class="form-group">
-                                <label for="codigoFactura">Número de Factura / Ticket:</label>
-                                <input type="text" class="form-control" name="codigoFactura" id="codigoFactura" value="<?php echo class_exists('VentaControllers') && method_exists('VentaControllers', 'ctrObtenerUltimoCodigoFactura') ? VentaControllers::ctrObtenerUltimoCodigoFactura() : '1'; ?>" readonly>
+                            <div class="form-group">    
+                                <label for="codigoFactura">Factura / Ticket N°:</label>
+                                <div class="input-group">
+                                    <span class="input-group-addon"><i class="fa fa-key"></i></span>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="codigoFactura" 
+                                           name="codigoFactura" 
+                                           value="<?php echo $codigoFactura; ?>" 
+                                           readonly>
+                                </div>
                             </div>
 
                             <!-- Tabla del Carrito de Compras -->
@@ -107,14 +130,9 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
 
                             <hr>
 
-                            <!-- Acciones de Vaciar Carrito y Mostrar Total -->
+                            <!-- Mostrar Total -->
                             <div class="row">
-                                <div class="col-xs-6">
-                                    <button type="button" class="btn btn-default btn-sm" id="btnVaciarCarrito" onclick="vaciarCarritoCompleto()">
-                                        <i class="fa fa-trash"></i> Vaciar Carrito
-                                    </button>
-                                </div>
-                                <div class="col-xs-6 text-right">
+                                <div class="col-xs-12 text-right">
                                     <h3>Total: $<span id="lblTotal">0.00</span></h3>
                                 </div>
                             </div>
@@ -124,22 +142,21 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
                             <input type="hidden" name="productosCarrito" id="inputProductosCarrito" value="[]">
 
                         </div>
+
+                        <!-- PIE CON BOTONES DE ACCIÓN -->
                         <div class="box-footer">
-    <!-- Botón para vaciar el carrito -->
-    <button type="button" class="btn btn-danger pull-left" id="btnVaciarCarrito">
-        <i class="fa fa-trash"></i> Vaciar Carrito
-    </button>
+                            <button type="button" class="btn btn-danger pull-left" onclick="vaciarCarritoCompleto()">
+                                <i class="fa fa-trash"></i> Vaciar Carrito
+                            </button>
 
-    <!-- Botón para Imprimir o guardar en PDF sin librerías externas -->
-    <button type="button" class="btn btn-default pull-left" onclick="window.print();" style="margin-left: 10px;">
-        <i class="fa fa-print"></i> Imprimir / Guardar PDF
-    </button>
+                            <button type="button" class="btn btn-default pull-left" onclick="window.print();" style="margin-left: 10px;">
+                                <i class="fa fa-print"></i> Imprimir / Guardar PDF
+                            </button>
 
-    <!-- Botón principal para procesar la venta -->
-    <button type="submit" class="btn btn-primary pull-right btn-lg" id="btnFacturar">
-        <i class="fa fa-check"></i> Confirmar y Facturar
-    </button>
-</div>
+                            <button type="submit" class="btn btn-primary pull-right btn-lg" id="btnFacturar">
+                                <i class="fa fa-check"></i> Confirmar y Facturar
+                            </button>
+                        </div>
                        
                     </div>
                 </div>
@@ -149,8 +166,8 @@ if (class_exists('ProductoController') && method_exists('ProductoController', 'l
 
         <?php
         // Procesar el guardado de la venta si se envió el formulario
-        if (class_exists('VentaControllers')) {
-            $guardarVenta = new VentaControllers();
+        if (class_exists('VentaController')) {
+            $guardarVenta = new VentaController();
             if (method_exists($guardarVenta, 'guardarVentaController')) {
                 $guardarVenta->guardarVentaController();
             }

@@ -2,7 +2,7 @@
 
 require_once __DIR__ . "/../models/Venta.php";
 
-class VentaControllers {
+class VentaController {
 
     /*=============================================
     GUARDAR VENTA

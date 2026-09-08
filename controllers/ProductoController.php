@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . "/../models/Producto.php";
+require_once __DIR__ . "/../models/Categoria.php";
+require_once __DIR__ . "/../models/Proveedor.php";
 
 class ProductoController {
 
@@ -8,10 +10,6 @@ class ProductoController {
     LISTAR PRODUCTOS
     =============================================*/
     public static function listarProductosController() {
-        return Producto::listarProductosModel();
-    }
-
-    public static function mostrarProductosController() {
         return Producto::listarProductosModel();
     }
 
