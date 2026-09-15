@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . "/Conexion.php";
+require_once "config/Conexion.php";
 
 class NotaCreditoModel {
 

@@ -1,26 +1,54 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>SGA Minorista</title>
-  
-  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<header class="main-header">
 
-  <!-- Estilos CSS -->
-  <link rel="stylesheet" href="views/assets/css/bootstrap.min.css">
-  <link rel="stylesheet" href="views/assets/css/font-awesome.min.css">
-  <link rel="stylesheet" href="views/assets/css/AdminLTE.min.css">
-  <link rel="stylesheet" href="views/assets/css/_all-skins.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700">
+  <!-- Logo del Sistema -->
+  <a href="index.php?action=inicio" class="logo">
+    <span class="logo-mini"><b>SGA</b></span>
+    <span class="logo-lg"><b>SGA</b> Minorista</span>
+  </a>
 
-  <!-- Scripts JS Base -->
-  <script src="views/assets/js/jquery.min.js"></script>
-  <script src="views/assets/js/bootstrap.min.js"></script>
-  <script src="views/assets/js/adminlte.min.js"></script>
-</head>
+  <!-- Barra de Navegación Superior -->
+  <nav class="navbar navbar-static-top" role="navigation">
+    
+    <!-- Botón para colapsar menú lateral -->
+    <a href="#" class="sidebar-toggle" data-toggle="push-menu" role="button">
+      <span class="sr-only">Toggle navigation</span>
+    </a>
 
-<body class="hold-transition skin-blue sidebar-mini">
-<div class="wrapper">
+    <!-- Menú Superior Derecho (Accesos Directos) -->
+    <div class="navbar-custom-menu">
+      <ul class="nav navbar-nav">
 
-  <!-- Encabezado y Navegación Principal (si manejás menú superior aquí) -->
+        <!-- 1. Botón Directo: Nueva Venta -->
+        <li>
+          <a href="index.php?action=crear-venta">
+            <i class="fa fa-shopping-cart"></i> <span>Nueva Venta</span>
+          </a>
+        </li>
+
+        <!-- 2. Botón Directo: Listado de Notas de Crédito -->
+        <li>
+          <a href="index.php?action=notas-credito">
+            <i class="fa fa-list"></i> <span>Ver NC</span>
+          </a>
+        </li>
+
+        <!-- 3. Botón Directo: Crear Nota de Crédito -->
+        <li>
+          <a href="index.php?action=crear-nota-credito">
+            <i class="fa fa-plus-circle"></i> <span>Nueva NC</span>
+          </a>
+        </li>
+
+        <!-- 4. Menú Usuario / Salir -->
+        <li>
+          <a href="index.php?action=salir">
+            <i class="fa fa-power-off text-red"></i> <span>Salir</span>
+          </a>
+        </li>
+
+      </ul>
+    </div>
+
+  </nav>
+
+</header>

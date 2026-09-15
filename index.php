@@ -1,5 +1,11 @@
 <?php
-
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$_SESSION["iniciarSesion"] = "ok"; // Forzar inicio de sesión para desarrollo
 /*=============================================
 1. INCLUSIÓN DE CONTROLADORES Y MODELOS
 =============================================*/
@@ -35,7 +41,9 @@ class Enrutador {
                 $ruta == "imprimir" ||
                 $ruta == "login" ||
                 $ruta == "notas-credito" ||
-                $ruta == "crear-nota-credito") {
+                $ruta == "productos" ||
+                $ruta == "crear-nota-credito")
+             {
 
                 include "views/modules/" . $ruta . ".php";
 
