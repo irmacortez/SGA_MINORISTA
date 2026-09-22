@@ -17,7 +17,7 @@ class NotaCreditoController {
                 "numero_nc"         => $_POST["numero_nc"],
                 "motivo"            => $_POST["motivo"] ?? "Ajuste / Devolución de comprobante",
                 "total_nc"          => $_POST["total_nc"],
-                "productos"         => $_POST["listaProductosNC"] ?? "[]" // JSON con id_producto y cantidad a devolver (0 si es solo precio)
+                "productos"         => $_POST["listaProductosNC"] ?? "[]" // JSON con id_producto y cantidad a devolver
             ];
 
             $respuesta = NotaCreditoModel::emitirNotaCreditoModel($datos);
@@ -66,9 +66,24 @@ class NotaCreditoController {
     }
 
     /*=============================================
-    LISTAR COMPROBANTES DE AJUSTE
+    LISTAR COMPROBANTES DE AJUSTE (NC Y ND)
     =============================================*/
     public static function listarAjustesController() {
         return NotaCreditoModel::listarAjustesModel();
     }
+
+    /*=============================================
+    MOSTRAR FACTURA PARA NC/ND (Requerido por AJAX)
+    =============================================*/
+    public static function ctrMostrarFacturaParaNC($item, $valor) {
+        // Verificar el nombre de la tabla en MySQL: suele ser "ventas" o "facturas"
+        $tabla = "ventas"; 
+        return NotaCreditoModel::mdlMostrarFacturaParaNC($tabla, $item, $valor);
+    }
 }
+
+/*=============================================
+EJECUCIÓN AUTOMÁTICA AL RECIBIR POST
+=============================================*/
+NotaCreditoController::emitirNotaCreditoController();
+NotaCreditoController::emitirNotaDebitoController();

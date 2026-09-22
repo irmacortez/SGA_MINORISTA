@@ -14,6 +14,17 @@ class ProductoController {
     }
 
     /*=============================================
+    MOSTRAR PRODUCTOS (ALIAS COMPATIBLE CON VISTAS/VENTAS)
+    =============================================*/
+    public static function ctrMostrarProductos($item = null, $valor = null) {
+        // Si tu modelo Producto soporta parámetros los pasa, de lo contrario llama al listado general
+        if (method_exists('Producto', 'mdlMostrarProductos')) {
+            return Producto::mdlMostrarProductos("productos", $item, $valor);
+        }
+        return Producto::listarProductosModel();
+    }
+
+    /*=============================================
     MOSTRAR INVENTARIO
     =============================================*/
     public static function mostrarInventario() {

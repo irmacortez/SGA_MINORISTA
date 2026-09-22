@@ -1,49 +1,50 @@
 <?php
 
 require_once __DIR__ . "/../models/Venta.php";
+require_once __DIR__ . "/../models/Producto.php";
 
 class VentaController {
 
-    /*=============================================
-    GUARDAR VENTA
-    =============================================*/
-    public function guardarVentaController() {
+    public static function listarVentasController() {
+        return Venta::listarVentasModel();
+    }
 
-        // Captura tanto si el input se llama 'total' o 'totalVenta'
-        if ((isset($_POST["total"]) && floatval($_POST["total"]) > 0) || (isset($_POST["totalVenta"]) && floatval($_POST["totalVenta"]) > 0)) {
+    public function ctrCrearVenta() {
 
-            $total = $_POST["total"] ?? $_POST["totalVenta"];
-            
-            // Decodificar el JSON de productos enviado desde el JS
-            $productosJson = $_POST["productosCarrito"] ?? "[]";
-            $listaProductos = json_decode($productosJson, true);
+        if (isset($_POST["listaProductos"]) && !empty($_POST["listaProductos"])) {
 
-            if (!empty($listaProductos) && is_array($listaProductos)) {
-
-                $datosVenta = [
-                    "codigo_factura" => $_POST["codigoFactura"] ?? 1,
-                    "total"          => $total
-                ];
-
-                // Invocación directa a tu VentaModel y su método registrarVentaModel
-                $respuesta = VentaModel::registrarVentaModel($datosVenta, $listaProductos);
-
-                if ($respuesta === "ok") {
-                    echo '<script>
-                        alert("¡Venta registrada con éxito y stock actualizado!");
-                        window.location = "index.php?action=crear-venta";
-                    </script>';
-                    exit();
-                } else {
-                    echo '<script>
-                        alert("Error de Base de Datos: ' . addslashes($respuesta) . '");
-                    </script>';
-                }
-            } else {
-                echo '<script>
-                    alert("El carrito está vacío o el formato de productos es incorrecto.");
-                </script>';
+            if ($_POST["listaProductos"] == "[]") {
+                echo '<script>alert("No se pueden procesar ventas vacías.");</script>';
+                return;
             }
+
+            $datos = array(
+                "codigo_factura" => "FAC-" . rand(10000, 99999),
+                "total"          => $_POST["totalVenta"] ?? 0,
+                "productos"      => $_POST["listaProductos"],
+                "fecha_hora"     => date("Y-m-d H:i:s")
+            );
+
+            // Guardar o simular ID si falla la tabla
+            $idVenta = Venta::guardarVentaModel($datos);
+
+            // Guardar temporalmente la ultima venta en SESSION como respaldo para el ticket
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION["ultima_venta_temp"] = array(
+                "id_venta"       => $idVenta,
+                "codigo_factura" => $datos["codigo_factura"],
+                "total"          => $datos["total"],
+                "productos"      => $datos["productos"],
+                "fecha_hora"     => $datos["fecha_hora"]
+            );
+
+            // Redirección forzada e inmediata a imprimir-factura.php
+            echo '<script>
+                window.location.href = "views/modules/imprimir-factura.php?id=' . $idVenta . '";
+            </script>';
+            exit();
         }
     }
 }

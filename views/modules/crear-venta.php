@@ -1,281 +1,280 @@
 <?php
-/* =============================================
-   OBTENER LISTA DE PRODUCTOS Y CÓDIGO DE FACTURA
-   ============================================= */
-require_once "models/Producto.php";
-require_once "controllers/ProductoController.php";
-require_once "models/Venta.php";
 require_once "controllers/VentaController.php";
-
-// 1. Consultar la última venta registrada para el código correlativo
-$ultimaVenta = VentaModel::obtenerUltimaVentaModel();
-
-if (!$ultimaVenta) {
-    // Si la tabla 'ventas' está vacía, inicia en 10001
-    $codigoFactura = 10001; 
-} else {
-    // Toma el último código_factura y le suma 1 automáticamente
-    $codigoFactura = intval($ultimaVenta["codigo_factura"]) + 1;
-}
-
-// 2. Obtener lista de productos
-$productos = array();
-if (class_exists('ProductoController') && method_exists('ProductoController', 'listarProductosController')) {
-    $productos = ProductoController::listarProductosController();
-} elseif (class_exists('ProductoControllers') && method_exists('ProductoControllers', 'listarProductosController')) {
-    $productos = ProductoControllers::listarProductosController();
-}
+require_once "controllers/ProductoController.php";
+require_once "models/Producto.php";
+require_once "models/Venta.php";
 ?>
 
 <div class="content-wrapper">
     <section class="content-header">
-        <h1>Registrar Nueva Venta <small>Facturación de Productos</small></h1>
+        <h1>
+            Registrar Nueva Venta
+            <small>Facturación de Productos</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="index.php?action=inicio"><i class="fa fa-dashboard"></i> Inicio</a></li>
+            <li class="active">Crear Venta</li>
+        </ol>
     </section>
 
     <section class="content">
-        <form role="form" method="post" action="index.php?action=crear-venta" id="formVenta" autocomplete="off">
-            <div class="row">
-                
-                <!-- COLUMNA IZQUIERDA: SELECCIÓN DE PRODUCTOS -->
-                <div class="col-md-5">
-                    <div class="box box-primary">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">1. Seleccionar Producto</h3>
-                        </div>
-                        <div class="box-body">
-                            
-                            <!-- Desplegable de Productos -->
-                            <div class="form-group">
-                                <label for="selectProducto">Producto:</label>
-                                <select class="form-control" id="selectProducto" name="selectProducto">
-                                    <option value="">-- Seleccionar Producto --</option>
-                                    <?php if (!empty($productos) && (is_array($productos) || is_object($productos))): ?>
-                                        <?php foreach ($productos as $p): ?>
-                                            <?php 
-                                                // Mapeo flexible de nombres de columnas
-                                                $id     = $p['id_producto']   ?? $p['id']           ?? '';
-                                                $nombre = $p['nombre_producto'] ?? $p['nombre']       ?? $p['descripcion'] ?? 'Producto';
-                                                $precio = floatval($p['precio_venta'] ?? $p['preciounitario'] ?? $p['precio'] ?? 0);
-                                                $stock  = intval($p['stock_actual']  ?? $p['stock']  ?? 0);
-                                            ?>
-                                            <option value="<?php echo $id; ?>" 
-                                                    data-nombre="<?php echo htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-precio="<?php echo $precio; ?>"
-                                                    data-stock="<?php echo $stock; ?>">
-                                                <?php echo $nombre; ?> | Stock: <?php echo $stock; ?> | $<?php echo number_format($precio, 2); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <!-- Entrada de Cantidad -->
-                            <div class="form-group">
-                                <label for="inputCantidadAgregar">Cantidad:</label>
-                                <input type="number" class="form-control" id="inputCantidadAgregar" name="inputCantidadAgregar" value="1" min="1">
-                            </div>
-
-                            <!-- Botón para Agregar al Carrito -->
-                            <div class="form-group">
-                                <button type="button" class="btn btn-success btn-block" id="btnAgregarProducto" onclick="insertarProductoAlCarrito()">
-                                    <i class="fa fa-plus"></i> Agregar al Carrito
-                                </button>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- COLUMNA DERECHA: TABLA Y DETALLE DE LA FACTURA -->
-                <div class="col-md-7">
-                    <div class="box box-success">
-                        <div class="box-header with-border">
-                            <h3 class="box-title">2. Detalle de la Factura</h3>
-                        </div>
-                        <div class="box-body">
-                            
-                            <!-- Número de Factura / Ticket -->
-                            <div class="form-group">    
-                                <label for="codigoFactura">Factura / Ticket N°:</label>
-                                <div class="input-group">
-                                    <span class="input-group-addon"><i class="fa fa-key"></i></span>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="codigoFactura" 
-                                           name="codigoFactura" 
-                                           value="<?php echo $codigoFactura; ?>" 
-                                           readonly>
-                                </div>
-                            </div>
-
-                            <!-- Tabla del Carrito de Compras -->
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-striped" id="tablaVentasDetalle">
-                                    <thead>
-                                        <tr>
-                                            <th>Producto</th>
-                                            <th style="width: 80px;" class="text-center">Cant.</th>
-                                            <th style="width: 100px;" class="text-right">P. Unit</th>
-                                            <th style="width: 110px;" class="text-right">Subtotal</th>
-                                            <th style="width: 40px;" class="text-center">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbodyCarrito">
-                                        <tr id="filaSinProductos">
-                                            <td colspan="5" class="text-center text-muted">No hay productos agregados a la venta.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <hr>
-
-                            <!-- Mostrar Total -->
-                            <div class="row">
-                                <div class="col-xs-12 text-right">
-                                    <h3>Total: $<span id="lblTotal">0.00</span></h3>
-                                </div>
-                            </div>
-
-                            <!-- Campos ocultos para procesar la venta en POST -->
-                            <input type="hidden" name="totalVenta" id="inputTotalVenta" value="0">
-                            <input type="hidden" name="productosCarrito" id="inputProductosCarrito" value="[]">
-
-                        </div>
-
-                        <!-- PIE CON BOTONES DE ACCIÓN -->
-                        <div class="box-footer">
-                            <button type="button" class="btn btn-danger pull-left" onclick="vaciarCarritoCompleto()">
-                                <i class="fa fa-trash"></i> Vaciar Carrito
-                            </button>
-
-                            <button type="button" class="btn btn-default pull-left" onclick="window.print();" style="margin-left: 10px;">
-                                <i class="fa fa-print"></i> Imprimir / Guardar PDF
-                            </button>
-
-                            <button type="submit" class="btn btn-primary pull-right btn-lg" id="btnFacturar">
-                                <i class="fa fa-check"></i> Confirmar y Facturar
-                            </button>
-                        </div>
-                       
-                    </div>
-                </div>
-
-            </div>
-        </form>
-
+        <!-- PROCESAR VENTA AL ENVIAR EL FORMULARIO POR POST DIRECTO -->
         <?php
-        // Procesar el guardado de la venta si se envió el formulario
-        if (class_exists('VentaController')) {
-            $guardarVenta = new VentaController();
-            if (method_exists($guardarVenta, 'guardarVentaController')) {
-                $guardarVenta->guardarVentaController();
-            }
-        }
+            $crearVenta = new VentaController();
+            $crearVenta->ctrCrearVenta();
         ?>
+
+        <form id="formFactura" method="post" class="row">
+            
+            <!-- COLUMNA IZQUIERDA: SELECCIÓN DE PRODUCTOS -->
+            <div class="col-md-5 col-xs-12">
+                <div class="box box-success">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">1. Seleccionar Producto</h3>
+                    </div>
+                    <div class="box-body">
+                        
+                        <!-- SELECCIÓN DE PRODUCTO -->
+                        <div class="form-group">
+                            <label for="selectProducto">Producto:</label>
+                            <select class="form-control" id="selectProducto" style="width: 100%;">
+                                <option value="">-- Seleccionar Producto --</option>
+                                <?php
+                                try {
+                                    $productos = ProductoController::listarProductosController();
+
+                                    if (!empty($productos) && is_array($productos)) {
+                                        foreach ($productos as $key => $value) {
+                                            $idProd = $value["id_producto"] ?? $value["id"] ?? 0;
+                                            $desc   = htmlspecialchars($value["nombre_producto"] ?? $value["descripcion"] ?? "Producto");
+                                            $precio = $value["precio_venta"] ?? $value["precio_unitario"] ?? $value["precio"] ?? 0;
+                                            $stock  = $value["stock_actual"] ?? $value["stock"] ?? 0;
+
+                                            echo '<option value="'.$idProd.'" data-precio="'.$precio.'" data-stock="'.$stock.'" data-descripcion="'.$desc.'">'.$desc.' (Stock: '.$stock.') - $'.number_format($precio, 2, ',', '.').'</option>';
+                                        }
+                                    }
+                                } catch (Exception $e) {
+                                    echo '<option value="">Error al cargar productos</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <!-- CANTIDAD -->
+                        <div class="form-group">
+                            <label for="cantProducto">Cantidad:</label>
+                            <input type="number" class="form-control" id="cantProducto" min="1" value="1">
+                        </div>
+
+                        <button type="button" class="btn btn-primary btn-block" id="btnAgregarCarrito">
+                            <i class="fa fa-cart-plus"></i> Agregar al Carrito
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA DERECHA: DETALLE Y TOTALES DE LA FACTURA -->
+            <div class="col-md-7 col-xs-12">
+                <div class="box box-warning">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">2. Detalle de la Factura</h3>
+                    </div>
+                    <div class="box-body">
+                        
+                        <!-- TABLA DEL CARRITO -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" id="tablaCarrito">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">Cant.</th>
+                                        <th style="width: 45%;">Producto</th>
+                                        <th style="width: 20%;">Precio U.</th>
+                                        <th style="width: 20%;">Subtotal</th>
+                                        <th style="width: 5%;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="filaVacia">
+                                        <td colspan="5" class="text-center">No hay productos en la cesta</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <hr>
+
+                        <!-- MUESTRA DEL TOTAL -->
+                        <div class="row">
+                            <div class="col-xs-12 text-right">
+                                <h2 style="margin:0; font-weight: bold;">Total: $<span id="lblTotal">0.00</span></h2>
+                                <input type="hidden" name="totalVenta" id="totalVenta" value="0">
+                                <input type="hidden" name="listaProductos" id="listaProductos" value="[]">
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="box-footer text-right">
+                        <!-- 1. Vaciar Carrito -->
+                        <button type="button" class="btn btn-default pull-left" id="btnVaciarCarrito">
+                            <i class="fa fa-trash"></i> Vaciar Carrito
+                        </button>
+                        
+                        <!-- 2. Previsualización limpia de ticket borrador -->
+                        <button type="button" class="btn btn-info" id="btnImprimirBorrador">
+                            <i class="fa fa-print"></i> Imprimir / Guardar PDF
+                        </button>
+
+                        <!-- 3. Confirmar y Registrar en BD -->
+                        <button type="submit" class="btn btn-success btn-lg" id="btnConfirmarVenta">
+                            <i class="fa fa-check-circle"></i> Confirmar y Facturar
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </form>
     </section>
 </div>
 
-<!-- LÓGICA DE JAVASCRIPT DEL CARRITO -->
+<!-- JAVASCRIPT NATIVO -->
 <script>
-var carritoCompras = [];
+window.addEventListener('DOMContentLoaded', function() {
 
-function insertarProductoAlCarrito() {
-    var select = document.getElementById("selectProducto");
-    if (!select || !select.value) {
-        alert("Por favor, seleccioná un producto de la lista desplegable.");
-        return;
-    }
+    var carrito = [];
 
-    var idProducto = select.value;
-    var option = select.options[select.selectedIndex];
-    
-    // Extraer datos con respaldo flexible
-    var nombre = option.getAttribute("data-nombre") || option.text.split('|')[0].trim();
-    var precio = parseFloat(option.getAttribute("data-precio")) || 0;
-    var stock  = parseInt(option.getAttribute("data-stock"), 10) || 0;
+    var btnAgregar = document.getElementById("btnAgregarCarrito");
+    var selectProd = document.getElementById("selectProducto");
+    var inputCant  = document.getElementById("cantProducto");
+    var btnVaciar  = document.getElementById("btnVaciarCarrito");
+    var btnBorrador = document.getElementById("btnImprimirBorrador");
+    var form       = document.getElementById("formFactura");
 
-    var inputCant = document.getElementById("inputCantidadAgregar");
-    var cantidad = inputCant ? parseInt(inputCant.value, 10) : 1;
-    if (isNaN(cantidad) || cantidad <= 0) cantidad = 1;
+    // 1. Agregar Producto
+    btnAgregar.addEventListener("click", function(e) {
+        e.preventDefault();
 
-    if (stock <= 0) {
-        alert("El producto seleccionado no tiene stock disponible.");
-        return;
-    }
+        var selectedOption = selectProd.options[selectProd.selectedIndex];
+        var id = selectProd.value;
 
-    // Buscar si ya existe en el carrito
-    var existe = carritoCompras.find(function(item) { return item.id_producto == idProducto; });
-
-    if (existe) {
-        if ((existe.cantidad + cantidad) > stock) {
-            alert("No se puede superar el stock disponible (" + stock + " unidades).");
+        if (!id || id === "") {
+            alert("Por favor, selecciona un producto.");
             return;
         }
-        existe.cantidad += cantidad;
-        existe.subtotal = (existe.cantidad * existe.precio).toFixed(2);
-    } else {
+
+        var descripcion = selectedOption.getAttribute("data-descripcion") || selectedOption.text;
+        var precio      = parseFloat(selectedOption.getAttribute("data-precio") || 0);
+        var stock       = parseInt(selectedOption.getAttribute("data-stock") || 9999);
+        var cantidad    = parseInt(inputCant.value || 1);
+
+        if (isNaN(cantidad) || cantidad <= 0) {
+            alert("Ingresa una cantidad válida.");
+            return;
+        }
+
         if (cantidad > stock) {
-            alert("La cantidad elegida supera el stock disponible (" + stock + " unidades).");
+            alert("La cantidad supera el stock disponible (" + stock + ").");
             return;
         }
-        carritoCompras.push({
-            id_producto: idProducto,
-            nombre_producto: nombre,
-            cantidad: cantidad,
-            precio: precio,
-            preciounitario: precio,
-            subtotal: (precio * cantidad).toFixed(2)
+
+        var encontrado = false;
+        for (var i = 0; i < carrito.length; i++) {
+            if (carrito[i].id == id) {
+                if ((carrito[i].cantidad + cantidad) > stock) {
+                    alert("Supera el stock disponible.");
+                    return;
+                }
+                carrito[i].cantidad += cantidad;
+                carrito[i].total = carrito[i].cantidad * carrito[i].precio;
+                encontrado = true;
+                break;
+            }
+        }
+
+        if (!encontrado) {
+            carrito.push({
+                id: id,
+                descripcion: descripcion,
+                precio: precio,
+                cantidad: cantidad,
+                total: cantidad * precio
+            });
+        }
+
+        renderizarTabla();
+        inputCant.value = 1;
+    });
+
+    // 2. Vaciar Carrito
+    btnVaciar.addEventListener("click", function() {
+        carrito = [];
+        renderizarTabla();
+    });
+
+    // 3. Imprimir Presupuesto/Borrador
+    btnBorrador.addEventListener("click", function() {
+        if (carrito.length === 0) {
+            alert("Agrega al menos un producto para previsualizar.");
+            return;
+        }
+        window.print();
+    });
+
+    // 4. Renderizar Tabla en HTML
+    function renderizarTabla() {
+        var tbody = document.querySelector("#tablaCarrito tbody");
+        var lblTotal = document.getElementById("lblTotal");
+        var inputTotal = document.getElementById("totalVenta");
+        var inputLista = document.getElementById("listaProductos");
+
+        tbody.innerHTML = "";
+        var totalGeneral = 0;
+
+        if (carrito.length === 0) {
+            tbody.innerHTML = '<tr id="filaVacia"><td colspan="5" class="text-center">No hay productos en la cesta</td></tr>';
+        } else {
+            for (var i = 0; i < carrito.length; i++) {
+                var item = carrito[i];
+                totalGeneral += item.total;
+
+                var tr = document.createElement("tr");
+                tr.innerHTML = '<td>' + item.cantidad + '</td>' +
+                    '<td>' + item.descripcion + '</td>' +
+                    '<td>$' + item.precio.toFixed(2) + '</td>' +
+                    '<td>$' + item.total.toFixed(2) + '</td>' +
+                    '<td class="text-center">' +
+                        '<button type="button" class="btn btn-danger btn-xs btnEliminar" data-id="' + item.id + '">' +
+                            '<i class="fa fa-times"></i>' +
+                        '</button>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            }
+        }
+
+        lblTotal.innerText = totalGeneral.toFixed(2);
+        inputTotal.value = totalGeneral;
+        inputLista.value = JSON.stringify(carrito);
+
+        var btnsEliminar = document.querySelectorAll(".btnEliminar");
+        btnsEliminar.forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                var idEliminar = this.getAttribute("data-id");
+                carrito = carrito.filter(function(p) { return p.id != idEliminar; });
+                renderizarTabla();
+            });
         });
     }
 
-    // Limpiar selección
-    select.value = "";
-    if (inputCant) inputCant.value = "1";
-
-    dibujarTablaCarrito();
-}
-
-function dibujarTablaCarrito() {
-    var tbody = document.getElementById("tbodyCarrito");
-    if (!tbody) return;
-
-    tbody.innerHTML = "";
-
-    if (carritoCompras.length === 0) {
-        tbody.innerHTML = '<tr id="filaSinProductos"><td colspan="5" class="text-center text-muted">No hay productos agregados a la venta.</td></tr>';
-        document.getElementById("lblTotal").innerText = "0.00";
-        document.getElementById("inputTotalVenta").value = "0";
-        document.getElementById("inputProductosCarrito").value = "[]";
-        return;
-    }
-
-    var totalAcumulado = 0;
-    carritoCompras.forEach(function(item, index) {
-        var sub = parseFloat(item.subtotal);
-        totalAcumulado += sub;
-
-        var tr = document.createElement("tr");
-        tr.innerHTML = '<td>' + item.nombre_producto + '</td>' +
-                       '<td class="text-center">' + item.cantidad + '</td>' +
-                       '<td class="text-right">$' + item.precio.toFixed(2) + '</td>' +
-                       '<td class="text-right">$' + sub.toFixed(2) + '</td>' +
-                       '<td class="text-center"><button type="button" class="btn btn-danger btn-xs" onclick="quitarItemCarrito(' + index + ')"><i class="fa fa-times"></i></button></td>';
-        tbody.appendChild(tr);
+    // 5. Validar Submit
+    form.addEventListener("submit", function(e) {
+        if (carrito.length === 0) {
+            e.preventDefault();
+            alert("Debes agregar al menos un producto para facturar.");
+            return false;
+        }
     });
 
-    document.getElementById("lblTotal").innerText = totalAcumulado.toFixed(2);
-    document.getElementById("inputTotalVenta").value = totalAcumulado.toFixed(2);
-    document.getElementById("inputProductosCarrito").value = JSON.stringify(carritoCompras);
-}
-
-function quitarItemCarrito(index) {
-    carritoCompras.splice(index, 1);
-    dibujarTablaCarrito();
-}
-
-function vaciarCarritoCompleto() {
-    carritoCompras = [];
-    dibujarTablaCarrito();
-}
+});
 </script>

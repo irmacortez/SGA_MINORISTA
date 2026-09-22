@@ -1,7 +1,12 @@
+$respuesta = NotaCreditoController::listarAjustesController();
 <?php
+// Llamada al método correcto definido en el controlador
+
+$respuesta = NotaCreditoController::listarAjustesController();
+?>
 // Obtener los listados desde el controlador
-$notasCredito = NotaCreditoController::listarNotasCreditoController();
-$notasDebito  = NotaCreditoController::listarNotasDebitoController();
+// $notasCredito = NotaCreditoController::listarNotasCreditoController();
+// $notasDebito  = NotaCreditoController::listarNotasDebitoController();
 ?>
 
 <div class="container-fluid px-4 py-3">
