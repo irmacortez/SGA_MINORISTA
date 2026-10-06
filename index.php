@@ -42,7 +42,9 @@ class Enrutador {
                 $ruta == "login" ||
                 $ruta == "notas-credito" ||
                 $ruta == "productos" ||
-                $ruta == "crear-nota-credito")
+                $ruta == "crear-nota-credito" ||
+                $ruta == "emitir-nota-credito" ||
+                $ruta == "salir" )
              {
 
                 include "views/modules/" . $ruta . ".php";

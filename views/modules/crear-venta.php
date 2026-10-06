@@ -46,9 +46,11 @@ require_once "models/Venta.php";
                                     if (!empty($productos) && is_array($productos)) {
                                         foreach ($productos as $key => $value) {
                                             $idProd = $value["id_producto"] ?? $value["id"] ?? 0;
-                                            $desc   = htmlspecialchars($value["nombre_producto"] ?? $value["descripcion"] ?? "Producto");
+                                            $desc   = htmlspecialchars($value["nombre_producto"] ?? $value["nombre"] ?? $value["descripcion"] ?? "Producto");
                                             $precio = $value["precio_venta"] ?? $value["precio_unitario"] ?? $value["precio"] ?? 0;
-                                            $stock  = $value["stock_actual"] ?? $value["stock"] ?? 0;
+                                            
+                                            // Compatibilidad amplia para recuperar stock_actual fresco desde la BD
+                                            $stock  = $value["stock_actual"] ?? $value["stock"] ?? $value["cant_stock"] ?? 0;
 
                                             echo '<option value="'.$idProd.'" data-precio="'.$precio.'" data-stock="'.$stock.'" data-descripcion="'.$desc.'">'.$desc.' (Stock: '.$stock.') - $'.number_format($precio, 2, ',', '.').'</option>';
                                         }
@@ -145,12 +147,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
     var carrito = [];
 
-    var btnAgregar = document.getElementById("btnAgregarCarrito");
-    var selectProd = document.getElementById("selectProducto");
-    var inputCant  = document.getElementById("cantProducto");
-    var btnVaciar  = document.getElementById("btnVaciarCarrito");
+    var btnAgregar  = document.getElementById("btnAgregarCarrito");
+    var selectProd  = document.getElementById("selectProducto");
+    var inputCant   = document.getElementById("cantProducto");
+    var btnVaciar   = document.getElementById("btnVaciarCarrito");
     var btnBorrador = document.getElementById("btnImprimirBorrador");
-    var form       = document.getElementById("formFactura");
+    var form        = document.getElementById("formFactura");
 
     // 1. Agregar Producto
     btnAgregar.addEventListener("click", function(e) {
@@ -166,7 +168,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
         var descripcion = selectedOption.getAttribute("data-descripcion") || selectedOption.text;
         var precio      = parseFloat(selectedOption.getAttribute("data-precio") || 0);
-        var stock       = parseInt(selectedOption.getAttribute("data-stock") || 9999);
+        var stock       = parseInt(selectedOption.getAttribute("data-stock") || 0);
         var cantidad    = parseInt(inputCant.value || 1);
 
         if (isNaN(cantidad) || cantidad <= 0) {
@@ -224,8 +226,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // 4. Renderizar Tabla en HTML
     function renderizarTabla() {
-        var tbody = document.querySelector("#tablaCarrito tbody");
-        var lblTotal = document.getElementById("lblTotal");
+        var tbody      = document.querySelector("#tablaCarrito tbody");
+        var lblTotal   = document.getElementById("lblTotal");
         var inputTotal = document.getElementById("totalVenta");
         var inputLista = document.getElementById("listaProductos");
 

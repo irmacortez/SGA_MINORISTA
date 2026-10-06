@@ -1,89 +1,42 @@
 <?php
 
-require_once __DIR__ . "/../models/NotaCredito.php";
-require_once __DIR__ . "/../models/Producto.php";
-
 class NotaCreditoController {
 
-    /*=============================================
-    EMITIR NOTA DE CRÉDITO (TOTAL, PARCIAL O PRECIO)
-    =============================================*/
-    public static function emitirNotaCreditoController() {
-        if (isset($_POST["id_factura_origen"]) && isset($_POST["total_nc"])) {
+    public function ctrCrearNotaCredito() {
+        if (isset($_POST["idVentaAnular"])) {
 
-            $datos = [
-                "id_factura_origen" => $_POST["id_factura_origen"],
-                "tipo_ajuste"       => $_POST["tipo_ajuste"], // 'devolucion_total', 'devolucion_parcial', 'diferencia_precio'
-                "numero_nc"         => $_POST["numero_nc"],
-                "motivo"            => $_POST["motivo"] ?? "Ajuste / Devolución de comprobante",
-                "total_nc"          => $_POST["total_nc"],
-                "productos"         => $_POST["listaProductosNC"] ?? "[]" // JSON con id_producto y cantidad a devolver
-            ];
+            if (!empty($_POST["listaProductosNC"])) {
 
-            $respuesta = NotaCreditoModel::emitirNotaCreditoModel($datos);
+                $idVenta   = $_POST["idVentaAnular"];
+                $motivo    = $_POST["motivoNC"] ?? "Devolución / Anulación de factura";
+                $totalNC   = $_POST["totalNC"] ?? 0;
+                $numeroNC  = "NC-" . str_pad(rand(1, 99999), 5, "0", STR_PAD_LEFT);
 
-            if ($respuesta == "ok") {
-                echo '<script>
-                    alert("¡Nota de Crédito procesada con éxito!");
-                    window.location = "index.php?action=notas-credito";
-                </script>';
-                exit();
-            } else {
-                echo '<script>
-                    alert("Error al procesar la Nota de Crédito en la base de datos.");
-                </script>';
+                $datos = array(
+                    "numero_nc"   => $numeroNC,
+                    "id_venta"    => $idVenta,
+                    "motivo"      => $motivo,
+                    "total"       => $totalNC,
+                    "productos"   => $_POST["listaProductosNC"]
+                );
+
+                $respuesta = NotaCredito::guardarNotaCreditoModel($datos);
+
+                if ($respuesta) {
+                    echo '<script>
+                        alert("Nota de Crédito emitida correctamente y stock reintegrado.");
+                        window.location = "index.php?action=notas-credito";
+                    </script>';
+                } else {
+                    echo '<script>
+                        alert("Ocurrió un error al procesar la Nota de Crédito.");
+                    </script>';
+                }
             }
         }
     }
 
-    /*=============================================
-    EMITIR NOTA DE DÉBITO (RECARGO O RECUPERO)
-    =============================================*/
-    public static function emitirNotaDebitoController() {
-        if (isset($_POST["id_factura_origen"]) && isset($_POST["total_nd"])) {
-
-            $datos = [
-                "id_factura_origen" => $_POST["id_factura_origen"],
-                "numero_nd"         => $_POST["numero_nd"],
-                "motivo"            => $_POST["motivo"] ?? "Recargo / Gastos administrativos",
-                "total_nd"          => $_POST["total_nd"]
-            ];
-
-            $respuesta = NotaCreditoModel::emitirNotaDebitoModel($datos);
-
-            if ($respuesta == "ok") {
-                echo '<script>
-                    alert("¡Nota de Débito emitida con éxito!");
-                    window.location = "index.php?action=notas-credito";
-                </script>';
-                exit();
-            } else {
-                echo '<script>
-                    alert("Error al procesar la Nota de Débito.");
-                </script>';
-            }
-        }
-    }
-
-    /*=============================================
-    LISTAR COMPROBANTES DE AJUSTE (NC Y ND)
-    =============================================*/
-    public static function listarAjustesController() {
-        return NotaCreditoModel::listarAjustesModel();
-    }
-
-    /*=============================================
-    MOSTRAR FACTURA PARA NC/ND (Requerido por AJAX)
-    =============================================*/
-    public static function ctrMostrarFacturaParaNC($item, $valor) {
-        // Verificar el nombre de la tabla en MySQL: suele ser "ventas" o "facturas"
-        $tabla = "ventas"; 
-        return NotaCreditoModel::mdlMostrarFacturaParaNC($tabla, $item, $valor);
+    public static function ctrListarNotasCredito() {
+        return NotaCredito::listarNotasCreditoModel();
     }
 }
-
-/*=============================================
-EJECUCIÓN AUTOMÁTICA AL RECIBIR POST
-=============================================*/
-NotaCreditoController::emitirNotaCreditoController();
-NotaCreditoController::emitirNotaDebitoController();

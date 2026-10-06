@@ -2,83 +2,137 @@
 
 if (file_exists(__DIR__ . "/../config/conexion.php")) {
     require_once __DIR__ . "/../config/conexion.php";
+} elseif (file_exists(__DIR__ . "/../config/Conexion.php")) {
+    require_once __DIR__ . "/../config/Conexion.php";
+} else {
+    die("Error: No se pudo encontrar el archivo de conexión.");
 }
 
 class Venta {
 
-    /*=============================================
-    LISTAR VENTAS
-    =============================================*/
-    public static function listarVentasModel() {
-        try {
-            if (class_exists('Conexion')) {
-                $stmt = Conexion::conectar()->prepare("SELECT * FROM ventas ORDER BY 1 DESC");
-                $stmt->execute();
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            }
-        } catch (Exception $e) {
-            // Ignorar error para no trabar la vista
-        }
-        return [];
-    }
-
-    /*=============================================
-    OBTENER VENTA POR ID
-    =============================================*/
-    public static function obtenerVentaPorIdModel($idVenta) {
-        try {
-            if (class_exists('Conexion')) {
-                $stmt = Conexion::conectar()->prepare("SELECT * FROM ventas WHERE id_venta = :id OR id = :id");
-                $stmt->bindParam(":id", $idVenta, PDO::PARAM_INT);
-                $stmt->execute();
-                return $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } catch (Exception $e) {
-            // Intento secundario
-        }
-        return false;
-    }
-
-    /*=============================================
-    GUARDAR VENTA (A PRUEBA DE ERRORES DE TABLA)
-    =============================================*/
     public static function guardarVentaModel($datos) {
         try {
-            if (class_exists('Conexion')) {
-                $link = Conexion::conectar();
+            $db = Conexion::conectar();
+            $db->beginTransaction();
+
+            $idUsuario = $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 1;
+
+            // 1. Insertar el encabezado de la venta
+            $sqlVenta = "INSERT INTO ventas (numero_comprobante, tipo_comprobante, fecha_venta, total, id_usuario, estado) 
+                         VALUES (:num, 'FAC', NOW(), :total, :id_usuario, '1')";
+            $stmtVenta = $db->prepare($sqlVenta);
+            $stmtVenta->execute([
+                ':num'        => $datos['codigo_factura'],
+                ':total'      => $datos['total'],
+                ':id_usuario' => $idUsuario
+            ]);
+
+            $idVentaGenerado = $db->lastInsertId();
+
+            // 2. Decodificar JSON del carrito proveniente de JS
+            $productos = is_array($datos['productos']) ? $datos['productos'] : json_decode($datos['productos'], true);
+
+            if (is_array($productos)) {
+                $sqlDetalle = "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario) 
+                               VALUES (:id_venta, :id_producto, :cantidad, :precio)";
                 
-                // Intento 1: Campos estándar sga_minorista
-                $stmt = $link->prepare("INSERT INTO ventas (codigo_factura, total, productos, fecha_hora) VALUES (:codigo, :total, :productos, :fecha)");
-                $stmt->bindParam(":codigo", $datos["codigo_factura"], PDO::PARAM_STR);
-                $stmt->bindParam(":total", $datos["total"], PDO::PARAM_STR);
-                $stmt->bindParam(":productos", $datos["productos"], PDO::PARAM_STR);
-                $stmt->bindParam(":fecha", $datos["fecha_hora"], PDO::PARAM_STR);
+                // DESCUENTO DIRECTO EN TABLA PRODUCTOS
+                $sqlStock = "UPDATE productos 
+                             SET stock_actual = stock_actual - :cantidad 
+                             WHERE id_producto = :id_producto";
 
-                if ($stmt->execute()) {
-                    $id = $link->lastInsertId();
-                    return ($id && $id > 0) ? $id : rand(100, 999);
+                $stmtDetalle = $db->prepare($sqlDetalle);
+                $stmtStock   = $db->prepare($sqlStock);
+
+                foreach ($productos as $prod) {
+                    // Mapeo exacto del JSON que manda crear-venta.php: {id, descripcion, precio, cantidad, total}
+                    $idProducto = $prod['id']       ?? $prod['id_producto'] ?? null;
+                    $cantidad   = $prod['cantidad'] ?? $prod['cant']        ?? 1;
+                    $precio     = $prod['precio']   ?? $prod['precio_venta']?? 0;
+
+                    if (!$idProducto) continue;
+
+                    // Insertar detalle
+                    $stmtDetalle->execute([
+                        ':id_venta'    => $idVentaGenerado,
+                        ':id_producto' => $idProducto,
+                        ':cantidad'    => $cantidad,
+                        ':precio'      => $precio
+                    ]);
+
+                    // Descontar Stock
+                    $stmtStock->execute([
+                        ':cantidad'    => $cantidad,
+                        ':id_producto' => $idProducto
+                    ]);
                 }
             }
+
+            $db->commit();
+            return $idVentaGenerado;
+
         } catch (Exception $e) {
-            // Intento 2: Campos de plantillas alternativas
-            try {
-                $link = Conexion::conectar();
-                $stmt = $link->prepare("INSERT INTO ventas (codigo, productos, neto, impuesto, total, metodo_pago, fecha) VALUES (:codigo, :productos, :total, 0, :total, 'Efectivo', :fecha)");
-                $stmt->bindParam(":codigo", $datos["codigo_factura"], PDO::PARAM_STR);
-                $stmt->bindParam(":productos", $datos["productos"], PDO::PARAM_STR);
-                $stmt->bindParam(":total", $datos["total"], PDO::PARAM_STR);
-                $stmt->bindParam(":fecha", $datos["fecha_hora"], PDO::PARAM_STR);
-
-                if ($stmt->execute()) {
-                    $id = $link->lastInsertId();
-                    return ($id && $id > 0) ? $id : rand(100, 999);
-                }
-            } catch (Exception $ex) {
-                // Si la tabla no existe o falla, retorna ID ficticio para forzar la emision del ticket
+            if (isset($db) && $db->inTransaction()) {
+                $db->rollBack();
             }
+            error_log("Error en Venta::guardarVentaModel -> " . $e->getMessage());
+            return false;
         }
+    }
 
-        // Si falla la insercion en BD, retorna un ID temporal para que NO impida la emision del ticket
-        return rand(100, 999);
+    public static function listarVentasModel() {
+        try {
+            $db = Conexion::conectar();
+            $sql = "SELECT v.*, u.nombre AS nombre_usuario 
+                    FROM ventas v
+                    LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
+                    ORDER BY v.id_venta DESC";
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error en Venta::listarVentasModel -> " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public static function obtenerVentaPorIdModel($idVenta) {
+        return self::obtenerVentaPorId($idVenta);
+    }
+
+    public static function obtenerDetallePorVentaModel($idVenta) {
+        return self::obtenerDetallePorVenta($idVenta);
+    }
+
+    public static function obtenerVentaPorId($idVenta) {
+        try {
+            $db = Conexion::conectar();
+            $sql = "SELECT v.*, u.nombre AS nombre_usuario 
+                    FROM ventas v
+                    LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario
+                    WHERE v.id_venta = :id";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([':id' => $idVenta]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error en Venta::obtenerVentaPorId -> " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public static function obtenerDetallePorVenta($idVenta) {
+        try {
+            $db = Conexion::conectar();
+            $sql = "SELECT dv.*, p.nombre AS nombre_producto, p.codigo_barras 
+                    FROM detalle_ventas dv
+                    INNER JOIN productos p ON dv.id_producto = p.id_producto
+                    WHERE dv.id_venta = :id";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([':id' => $idVenta]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error en Venta::obtenerDetallePorVenta -> " . $e->getMessage());
+            return [];
+        }
     }
 }
